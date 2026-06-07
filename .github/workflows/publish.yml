@@ -1,5 +1,4 @@
 name: Build and Push Image
-
 on:
   push:
     paths:
@@ -10,39 +9,43 @@ on:
       - 'new-certs.sh'
     branches:
       - main
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+      - name: Get version from Dockerfile
+        id: version
+        run: |
+          VERSION=$(grep '^ARG VERSION=' Dockerfile | cut -d'=' -f2)
+          VERSION_UNDERSCORE=$(echo $VERSION | tr '.' '_')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_underscore=$VERSION_UNDERSCORE" >> $GITHUB_OUTPUT
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push (ARM64)
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/arm/v7,linux/arm64
           push: true
-          tags: ghcr.io/brentonthomson/cp-freeradius:latest
+          tags: |
+            ghcr.io/brentonthomson/cp-freeradius:latest
+            ghcr.io/brentonthomson/cp-freeradius:${{ steps.version.outputs.version }}
           build-args: |
-            VERSION=3.2.8
-            VERSION_UNDERSCORE=3_2_8
+            VERSION=${{ steps.version.outputs.version }}
+            VERSION_UNDERSCORE=${{ steps.version.outputs.version_underscore }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
