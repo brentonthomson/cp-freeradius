@@ -44,4 +44,4 @@ HEALTHCHECK --start-period=1m --interval=5m \
     CMD netstat -an | grep 1812 > /dev/null; if [ 0 != $? ]; then exit 1; fi;
 
 ENTRYPOINT ["/opt/entrypoint.sh"]
-CMD ["radiusd"]
+CMD ["radiusd"] 
